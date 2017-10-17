@@ -11,16 +11,23 @@ class cycle:
         pass
 
     def fwd(self,inp):
-        for lyr in self.cascade:
+        for lyr in self.csd:
             inp=sigmoid(np.dot(lyr.wt,inp)+lyr.bs)
         return inp
 
-    def bwd(self,inp,otp):
-        for lyr in self.cascade:
+    def bkp(self,inp,otp):
+        for lyr in self.csd:
             lyr.z=np.dot(w,inp)+b
             inp=lyr.act=sigmoid(lyr.z)
-        lyr=self.cacade[-1]
+        lyr=self.csd[-1]
         inp=self.cost(lyr.z,lyr.act,otp)
-        for lyr in self.cascade[:-1:-1]:
-          np.dot(lyr.wt.T,inp)*sigmoid_prime(lyr.z)
+        delta=None
+        for hd,lyr,tl in zip(self.csd[:-2:-1],self.csd[1:-1:-1],self.csd[2::-1]):
+            if delta is None:
+                cost=self.cost(lyr.act,otp)
+            else:
+                cost=np.dot(tl.wt.T,delta)    
+            delta=cost*sigmoid_prime(lyr.z)
+            np.dot(delta,hd.act.T)
 
+    
