@@ -16,8 +16,8 @@ class layer:
 		self.nb=[]
 		self.nw=[]
 		if n:
-			self.wt=np.random.randn(k,n)
-			self.bs=np.random.randn(k)
+			self.wt=np.random.randn(n,k)
+			self.bs=np.random.randn(1,k)
 		else:
 			self.nb=None
 
@@ -31,26 +31,32 @@ class cycle:
 	def load(self,inp):
 		self.csd[0].act=inp
 
-	def fwd(self,inp):
-		for lyr in self.csd[1:]:
-			inp=sigmoid(np.dot(lyr.wt,inp)+lyr.bs)
-		return inp
+	# def fwd(self,inp):
+	# 	for lyr in self.csd[1:]:
+	# 		inp=sigmoid(np.dot(inp,lyr.wt)+lyr.bs)
+	# 	return inp
 
 	def bkp(self,otp):
 		reduce(forward,self.csd)
 		lyr=self.csd[-1]
 		lyr.nb=lyr.act-otp
+		if lyr.nb.shape==(1,): lyr.nb=lyr.nb[0]
 		reduce(backward,self.csd[::-1])
 
 def forward(hd,lyr):
-	lyr.z=np.dot(lyr.wt,hd.act)+lyr.bs
+	lyr.z=np.dot(hd.act,lyr.wt)+lyr.bs
+	# print(lyr.z.shape)
 	lyr.act=sigmoid(lyr.z)
 	return lyr
 
 def backward(lyr,hd):
 	if hd.nb!=None:
-		hd.nb=np.dot(lyr.wt.transpose(),lyr.nb)*sigmoid_prime(hd.z) 
-	lyr.nw=np.dot(lyr.nb,hd.act.transpose())
+		# print(lyr.wt.shape,lyr.nb.shape,hd.z.T.shape)
+		hd.nb=np.dot(lyr.wt,lyr.nb)*sigmoid_prime(hd.z.T) 
+		# print(hd.nb.shape)
+	lyr.nw=np.dot(lyr.nb,hd.act)
+	# print(lyr.nw.shape)
+	# lyr.nw=np.dot(hd.act.transpose(),lyr.nb)
 	return hd
 
 def sigmoid(z):
@@ -62,6 +68,8 @@ def sigmoid_prime(z):
 
 if __name__=="__main__":
 	x,y=load_data()
+	x.shape=(1,x.shape[0])
+	# print(x.shape)
 	fbr=[784,10,11,12,1]
 	mrk=cycle(fbr)
 	mrk.load(x)
