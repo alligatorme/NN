@@ -31,10 +31,10 @@ class cycle:
 	def load(self,inp):
 		self.csd[0].act=inp
 
-	# def fwd(self,inp):
-	# 	for lyr in self.csd[1:]:
-	# 		inp=sigmoid(np.dot(inp,lyr.wt)+lyr.bs)
-	# 	return inp
+	def fwd(self,inp):
+		for lyr in self.csd[1:]:
+			inp=sigmoid(np.dot(inp,lyr.wt)+lyr.bs)
+		return inp
 
 	def bkp(self,otp):
 		reduce(forward,self.csd)
@@ -45,18 +45,18 @@ class cycle:
 
 def forward(hd,lyr):
 	lyr.z=np.dot(hd.act,lyr.wt)+lyr.bs
-	# print(lyr.z.shape)
 	lyr.act=sigmoid(lyr.z)
+	# print(lyr.act.shape)
+	# print(lyr.z)
 	return lyr
 
 def backward(lyr,hd):
 	if hd.nb!=None:
-		# print(lyr.wt.shape,lyr.nb.shape,hd.z.T.shape)
 		hd.nb=np.dot(lyr.wt,lyr.nb)*sigmoid_prime(hd.z.T) 
+		# print(lyr.wt.shape,lyr.nb.shape,hd.z.T.shape)
 		# print(hd.nb.shape)
 	lyr.nw=np.dot(lyr.nb,hd.act)
 	# print(lyr.nw.shape)
-	# lyr.nw=np.dot(hd.act.transpose(),lyr.nb)
 	return hd
 
 def sigmoid(z):
@@ -69,27 +69,9 @@ def sigmoid_prime(z):
 if __name__=="__main__":
 	x,y=load_data()
 	x.shape=(1,x.shape[0])
-	# print(x.shape)
 	fbr=[784,10,11,12,1]
 	mrk=cycle(fbr)
 	mrk.load(x)
 	mrk.bkp(y)
 	print(y,mrk.csd[-1].act)
 
-
-
-		# for hd,lyr in zip(self.csd[:-1],self.csd[1:]):
-		#     lyr.z=np.dot(w,hd.act)+b
-		#     lyr.act=sigmoid(lyr.z)
-
-
-		# lyr=self.csd[-1]
-		# inp=self.cost(lyr.z,lyr.act,otp)
-		# delta=None
-		# for hd,lyr,tl in zip(self.csd[:-2:-1],self.csd[1:-1:-1],self.csd[2::-1]):
-		# 	if delta is None:
-		# 		cost=self.cost(lyr.act,otp)
-		# 	else:
-		# 		cost=np.dot(tl.wt.transpose(),delta)    
-		# 	delta=cost*sigmoid_prime(lyr.z)
-		# 	np.dot(delta,hd.act.transpose())
