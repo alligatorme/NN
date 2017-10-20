@@ -36,7 +36,8 @@ class cycle:
 			inp=sigmoid(np.dot(inp,lyr.wt)+lyr.bs)
 		return inp
 
-	def bkp(self,otp):
+	def bkp(self,inp,otp):
+		self.load(inp)
 		reduce(forward,self.csd)
 		lyr=self.csd[-1]
 		lyr.nb=lyr.act-otp
@@ -45,9 +46,9 @@ class cycle:
 
 def forward(hd,lyr):
 	lyr.z=np.dot(hd.act,lyr.wt)+lyr.bs
+	# print('origin=',lyr.wt.shape)
 	lyr.act=sigmoid(lyr.z)
-	# print(lyr.act.shape)
-	# print(lyr.z)
+	# print('fwd=',lyr.act.shape)
 	return lyr
 
 def backward(lyr,hd):
@@ -55,8 +56,8 @@ def backward(lyr,hd):
 		hd.nb=np.dot(lyr.wt,lyr.nb)*sigmoid_prime(hd.z.T) 
 		# print(lyr.wt.shape,lyr.nb.shape,hd.z.T.shape)
 		# print(hd.nb.shape)
-	lyr.nw=np.dot(lyr.nb,hd.act)
-	# print(lyr.nw.shape)
+	lyr.nw=np.dot(hd.act.T,lyr.nb.T)
+	print(lyr.nw.shape)
 	return hd
 
 def sigmoid(z):
@@ -71,7 +72,7 @@ if __name__=="__main__":
 	x.shape=(1,x.shape[0])
 	fbr=[784,10,11,12,1]
 	mrk=cycle(fbr)
-	mrk.load(x)
-	mrk.bkp(y)
+	mrk.bkp(x,y)
+	print(mrk.fwd(x))
 	print(y,mrk.csd[-1].act)
 
