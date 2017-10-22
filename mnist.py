@@ -20,6 +20,13 @@ class layer:
 			self.bs=np.random.randn(1,k)
 		else:
 			self.nb=None
+		self.pwt=[]
+		self.pbs=[]
+
+	def pst_wt(self,fun):
+		self.pwt=+fun(self.nw)
+	def pst_bs(self,fun):
+		self.pbs=+fun(self.bs)
 
 class cycle:
 	def __init__(self,fbr):		
