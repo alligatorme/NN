@@ -7,10 +7,6 @@ def load_data():
 	f = gzip.open('mnist.pkl.gz', 'rb')
 	td, validation_data, test_data = pickle.load(f,encoding='bytes')
 	f.close()
-	for i in td[0]:		
-		i.shape=(1,i.shape[0])
-		print(i.shape)
-	# print(td[0][0],td[1][0])
 	return (td[0][0],td[1][0])
 	# return (training_data, validation_data, test_data)
 
@@ -99,7 +95,7 @@ def refresh(patch,eta):
 
 if __name__=="__main__":
 	x,y=load_data()
-	# x.shape=(1,x.shape[0])
+	x.shape=(1,x.shape[0])
 	print(x.shape)
 	fbr=[784,10,11,12,1]
 	mrk=cycle(fbr)
