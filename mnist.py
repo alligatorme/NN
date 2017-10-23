@@ -7,6 +7,9 @@ def load_data():
 	f = gzip.open('mnist.pkl.gz', 'rb')
 	td, validation_data, test_data = pickle.load(f,encoding='bytes')
 	f.close()
+	for i in td[0]:		
+		i.shape=(1,i.shape[0])
+		print(i.shape)
 	# print(td[0][0],td[1][0])
 	return (td[0][0],td[1][0])
 	# return (training_data, validation_data, test_data)
@@ -18,15 +21,23 @@ class layer:
 		if n:
 			self.wt=np.random.randn(n,k)
 			self.bs=np.random.randn(1,k)
+			self.pwt=np.zeros(self.wt.shape)
+			self.pbs=np.zeros(self.bs.shape)
 		else:
 			self.nb=None
-		self.pwt=[]
-		self.pbs=[]
+		
 
-	def pst_wt(self,fun):
-		self.pwt=+fun(self.nw)
-	def pst_bs(self,fun):
-		self.pbs=+fun(self.bs)
+	def pst_wt(self):
+		print(self.pwt.shape,self.nw.shape)
+		self.pwt+=crs(src=self.nw)
+		self.nw=[]
+	def pst_bs(self):
+		self.pbs+=crs(src=self.nb.T)
+		self.nb=[]
+
+	def update(self):
+		self.wt+=self.pwt
+		self.bs+=self.pbs
 
 class cycle:
 	def __init__(self,fbr):		
@@ -51,6 +62,7 @@ class cycle:
 		if lyr.nb.shape==(1,): lyr.nb=lyr.nb[0]
 		reduce(backward,self.csd[::-1])
 
+
 def forward(hd,lyr):
 	lyr.z=np.dot(hd.act,lyr.wt)+lyr.bs
 	# print('origin=',lyr.wt.shape)
@@ -65,7 +77,13 @@ def backward(lyr,hd):
 		# print(hd.nb.shape)
 	lyr.nw=np.dot(hd.act.T,lyr.nb.T)
 	print(lyr.nw.shape)
+	# lyr.pst_bs()
+	# lyr.pst_wt()
+	
 	return hd
+
+def crs(src,np=10,eta=0.1):
+	return -eta/np*src 
 
 def sigmoid(z):
     return 1.0/(1.0+np.exp(-z))
@@ -73,10 +91,16 @@ def sigmoid(z):
 def sigmoid_prime(z):
     return sigmoid(z)*(1-sigmoid(z))
 
+def refresh(patch,eta):
+	for x,y in patch:
+		self.bkp(x,y)
+	for lyr in self.csd[1:]:
+		lyr.update()
 
 if __name__=="__main__":
 	x,y=load_data()
-	x.shape=(1,x.shape[0])
+	# x.shape=(1,x.shape[0])
+	print(x.shape)
 	fbr=[784,10,11,12,1]
 	mrk=cycle(fbr)
 	mrk.bkp(x,y)
