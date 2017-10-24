@@ -5,10 +5,10 @@ import gzip
 
 def load_data():
 	f = gzip.open('mnist.pkl.gz', 'rb')
-	td, validation_data, test_data = pickle.load(f,encoding='bytes')
+	td, validation_data, tsd = pickle.load(f,encoding='bytes')
 	f.close()
-	return (td[0][0],td[1][0])
-	# return (training_data, validation_data, test_data)
+	# return (td[0][0],td[1][0])
+	return list(zip(td[0][:1000],td[1][:1000])),list(zip(tsd[0],tsd[1]))
 
 class layer:
 	def __init__(self,n,k):
@@ -24,16 +24,16 @@ class layer:
 		
 
 	def pst_wt(self):
-		print(self.pwt.shape,self.nw.shape)
-		self.pwt+=crs(src=self.nw)
+		# print(self.pwt.shape,self.nw.shape)
+		self.pwt+=self.nw
 		self.nw=[]
 	def pst_bs(self):
-		self.pbs+=crs(src=self.nb.T)
+		self.pbs+=self.nb.T
 		self.nb=[]
 
 	def update(self):
-		self.wt+=self.pwt
-		self.bs+=self.pbs
+		self.wt+=crs(self.pwt)
+		self.bs+=crs(self.pbs)
 
 class cycle:
 	def __init__(self,fbr):		
@@ -53,28 +53,28 @@ class cycle:
 	def bkp(self,inp,otp):
 		self.load(inp)
 		reduce(forward,self.csd)
-		lyr=self.csd[-1]
-		lyr.nb=lyr.act-otp
-		if lyr.nb.shape==(1,): lyr.nb=lyr.nb[0]
+		init_cost(self.csd[-1],otp)
+		
 		reduce(backward,self.csd[::-1])
+		# print(otp,':',mrk.csd[-1].act)
 
+def init_cost(lyr,otp):
+	dmp=np.zeros((10,1))
+	dmp[otp]=1
+	lyr.nb=(lyr.act.T-dmp)*sigmoid_prime(lyr.z.T)
 
 def forward(hd,lyr):
 	lyr.z=np.dot(hd.act,lyr.wt)+lyr.bs
-	# print('origin=',lyr.wt.shape)
 	lyr.act=sigmoid(lyr.z)
-	# print('fwd=',lyr.act.shape)
 	return lyr
 
 def backward(lyr,hd):
+	# print(hd.act.shape,lyr.nb.shape)
 	if hd.nb!=None:
-		hd.nb=np.dot(lyr.wt,lyr.nb)*sigmoid_prime(hd.z.T) 
-		# print(lyr.wt.shape,lyr.nb.shape,hd.z.T.shape)
-		# print(hd.nb.shape)
+		hd.nb=np.dot(lyr.wt,lyr.nb)*sigmoid_prime(hd.z.T) 	
 	lyr.nw=np.dot(hd.act.T,lyr.nb.T)
-	print(lyr.nw.shape)
-	# lyr.pst_bs()
-	# lyr.pst_wt()
+	lyr.pst_bs()
+	lyr.pst_wt()
 	
 	return hd
 
@@ -82,24 +82,40 @@ def crs(src,np=10,eta=0.1):
 	return -eta/np*src 
 
 def sigmoid(z):
-    return 1.0/(1.0+np.exp(-z))
+		return 1.0/(1.0+np.exp(-z))
 
 def sigmoid_prime(z):
-    return sigmoid(z)*(1-sigmoid(z))
+		return sigmoid(z)*(1-sigmoid(z))
 
-def refresh(patch,eta):
-	for x,y in patch:
-		self.bkp(x,y)
-	for lyr in self.csd[1:]:
-		lyr.update()
+def evl(tsd):
+	tsr= [(np.argmax(mrk.fwd(x)), y) for (x, y) in tsd]
+	return sum(int(x==y) for (x, y) in tsr)
+
+def sgd(trd,npc,eta,epk=1,tsd=None):
+	for k in range(epk):
+		np.random.shuffle(trd)
+		for patch in [trd[k:k+npc] for k in range(0,len(trd),npc)]:
+			for x,y in patch:
+				if x.shape[0]!=1:x.shape=(1,x.shape[0])
+				mrk.bkp(x,y)
+			for lyr in mrk.csd[1:]:
+				lyr.update()
+
+		if tsd:
+			print ("Epoch {0}: {1} / {2}".format(k, evl(tsd), len(tsd)))
+		else:
+			print ("Epoch complete")
 
 if __name__=="__main__":
-	x,y=load_data()
-	x.shape=(1,x.shape[0])
-	print(x.shape)
-	fbr=[784,10,11,12,1]
+	fbr=[784,20,15,15,10]
 	mrk=cycle(fbr)
-	mrk.bkp(x,y)
-	print(mrk.fwd(x))
-	print(y,mrk.csd[-1].act)
+
+	trd,tsd=load_data()
+
+	# x,y=load_data()
+	# if x.shape[0]!=1:x.shape=(1,x.shape[0])
+	# mrk.bkp(x,y)
+
+	# print(y,':',mrk.csd[-1].act)
+	sgd(trd,10,20,epk=10,tsd=tsd)
 
