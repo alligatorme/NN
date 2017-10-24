@@ -10,6 +10,7 @@ def load_data():
 	# return (td[0][0],td[1][0])
 	return list(zip(td[0][:1000],td[1][:1000])),list(zip(tsd[0],tsd[1]))
 
+
 class layer:
 	def __init__(self,n,k):
 		self.nb=[]
@@ -53,10 +54,9 @@ class cycle:
 	def bkp(self,inp,otp):
 		self.load(inp)
 		reduce(forward,self.csd)
-		init_cost(self.csd[-1],otp)
-		
+		init_cost(self.csd[-1],otp)		
 		reduce(backward,self.csd[::-1])
-		# print(otp,':',mrk.csd[-1].act)
+		# print(otp,':',np.argmax(mrk.csd[-1].act))
 
 def init_cost(lyr,otp):
 	dmp=np.zeros((10,1))
@@ -69,53 +69,72 @@ def forward(hd,lyr):
 	return lyr
 
 def backward(lyr,hd):
-	# print(hd.act.shape,lyr.nb.shape)
 	if hd.nb!=None:
 		hd.nb=np.dot(lyr.wt,lyr.nb)*sigmoid_prime(hd.z.T) 	
 	lyr.nw=np.dot(hd.act.T,lyr.nb.T)
 	lyr.pst_bs()
-	lyr.pst_wt()
-	
+	lyr.pst_wt()	
 	return hd
 
-def crs(src,np=10,eta=0.1):
-	return -eta/np*src 
+def crs(src,npc=1,eta=1):
+	return -eta/npc*src 
 
 def sigmoid(z):
-		return 1.0/(1.0+np.exp(-z))
+	return 1.0/(1.0+np.exp(-z))
 
 def sigmoid_prime(z):
 		return sigmoid(z)*(1-sigmoid(z))
 
 def evl(tsd):
-	tsr= [(np.argmax(mrk.fwd(x)), y) for (x, y) in tsd]
-	return sum(int(x==y) for (x, y) in tsr)
+	# tsr= [(np.argmax(mrk.fwd(x)), y) for (x, y) in tsd]
+	tsr=np.zeros((10,))
+	for x,y in tsd:
+		if np.argmax(mrk.fwd(x))==y:
+			tsr[y]+=1
+	return tsr
 
 def sgd(trd,npc,eta,epk=1,tsd=None):
 	for k in range(epk):
 		np.random.shuffle(trd)
-		for patch in [trd[k:k+npc] for k in range(0,len(trd),npc)]:
+		for patch in [trd[k:k+npc] for k in range(0,len(trd),npc)]:			
 			for x,y in patch:
+				# for i in range(50):
 				if x.shape[0]!=1:x.shape=(1,x.shape[0])
 				mrk.bkp(x,y)
-			for lyr in mrk.csd[1:]:
-				lyr.update()
+				for lyr in mrk.csd[1:]:
+					lyr.update()
+			# vd=np.argmax(mrk.csd[-1].act)
+			# print(y,'=',vd)
+
 
 		if tsd:
 			print ("Epoch {0}: {1} / {2}".format(k, evl(tsd), len(tsd)))
 		else:
 			print ("Epoch complete")
 
+def load_data1():
+	f = gzip.open('mnist.pkl.gz', 'rb')
+	td, validation_data, tsd = pickle.load(f,encoding='bytes')
+	f.close()
+	n=12
+	return (td[0][n],td[1][n])
+
 if __name__=="__main__":
-	fbr=[784,20,15,15,10]
+	fbr=[784,20,20,10]
 	mrk=cycle(fbr)
 
 	trd,tsd=load_data()
+	sgd(trd,10,1,epk=20,tsd=tsd)
 
-	# x,y=load_data()
+	# x,y=load_data1()
 	# if x.shape[0]!=1:x.shape=(1,x.shape[0])
-	# mrk.bkp(x,y)
+	# for i in range(30):
+	# 	mrk.bkp(x,y)
+	# 	for lyr in mrk.csd[1:]:
+	# 		lyr.update()
+		
+	# 	print(y,':',np.argmax(mrk.csd[-1].act))
 
-	# print(y,':',mrk.csd[-1].act)
-	sgd(trd,10,20,epk=10,tsd=tsd)
+	
+	
 
