@@ -31,8 +31,8 @@ class Network(object):
         ever used in computing the outputs from later layers."""
         self.num_layers = len(sizes)
         self.sizes = sizes
-        self.biases = [0.01*np.ones((y, 1)) for y in sizes[1:]]
-        self.weights = [0.01*np.ones((y, x))
+        self.biases = [np.random.randn(y, 1) for y in sizes[1:]]
+        self.weights = [np.random.randn(y, x)
                         for x, y in zip(sizes[:-1], sizes[1:])]
 
     def feedforward(self, a):
@@ -53,9 +53,7 @@ class Network(object):
         tracking progress, but slows things down substantially."""
         
         if test_data: n_test = len(test_data)
-        # n_test=10000
-        # n = len(training_data)
-        n=4
+        n = len(training_data)
         for j in range(epochs):
             # np.random.shuffle(training_data)
             mini_batches = [
@@ -64,11 +62,11 @@ class Network(object):
             for mini_batch in mini_batches:
                 self.update_mini_batch(mini_batch, eta)
 
-            # if test_data:
-            #     print ("Epoch {0}: {1} / {2}".format(
-            #                         j, self.evaluate(test_data), n_test))
-            # else:
-            #     print ("Epoch {0} complete".format(j))
+            if test_data:
+                print ("Epoch {0}: {1} / {2}".format(
+                                    j, self.evaluate(test_data), n_test))
+            else:
+                print ("Epoch {0} complete".format(j))
 
     def update_mini_batch(self, mini_batch, eta):
         """Update the network's weights and biases by applying
@@ -85,7 +83,7 @@ class Network(object):
                         for w, nw in zip(self.weights, nabla_w)]
         self.biases = [b-(eta/len(mini_batch))*nb
                        for b, nb in zip(self.biases, nabla_b)]
-        print(nabla_b[::-1])
+      
 
     def backprop(self, x, y):
         """Return a tuple ``(nabla_b, nabla_w)`` representing the
@@ -119,7 +117,6 @@ class Network(object):
             delta = np.dot(self.weights[-l+1].transpose(), delta) * sp
             nabla_b[-l] = delta
             nabla_w[-l] = np.dot(delta, activations[-l-1].transpose())
-        # print(np.argmax(activations[-1]),':',np.argmax(y))
         return (nabla_b,nabla_w)
 
     def evaluate(self, test_data):
