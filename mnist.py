@@ -8,7 +8,7 @@ def load_data():
 	td, validation_data, tsd = pickle.load(f,encoding='bytes')
 	f.close()
 	# return (td[0][0],td[1][0])
-	return list(zip(td[0][:1000],td[1][:1000])),list(zip(tsd[0],tsd[1]))
+	return list(zip(td[0][:],td[1][:])),list(zip(tsd[0],tsd[1]))
 
 
 class layer:
@@ -16,8 +16,10 @@ class layer:
 		self.nb=[]
 		self.nw=[]
 		if n:
-			self.wt=np.random.randn(n,k)
-			self.bs=np.random.randn(1,k)
+			# self.wt=np.random.randn(n,k)
+			# self.bs=np.random.randn(1,k)
+			self.wt=0.01*np.ones((n,k))
+			self.bs=0.01*np.ones((1,k))
 			self.pwt=np.zeros(self.wt.shape)
 			self.pbs=np.zeros(self.bs.shape)
 		else:
@@ -27,6 +29,7 @@ class layer:
 	def pst_wt(self):
 		# print(self.pwt.shape,self.nw.shape)
 		self.pwt+=self.nw
+		# print(self.nw)
 		self.nw=[]
 	def pst_bs(self):
 		self.pbs+=self.nb.T
@@ -35,6 +38,7 @@ class layer:
 	def update(self):
 		self.wt+=crs(self.pwt)
 		self.bs+=crs(self.pbs)
+
 
 class cycle:
 	def __init__(self,fbr):		
@@ -62,8 +66,13 @@ def init_cost(lyr,otp):
 	dmp=np.zeros((10,1))
 	dmp[otp]=1
 	lyr.nb=(lyr.act.T-dmp)*sigmoid_prime(lyr.z.T)
+	# print(dmp.T,lyr.act.T,lyr.z)
 
 def forward(hd,lyr):
+	# print(hd.act.shape,lyr.wt.shape)
+	# print(np.dot(hd.act,lyr.wt))
+	# print(lyr.bs.shape)
+	# print(lyr.bs)
 	lyr.z=np.dot(hd.act,lyr.wt)+lyr.bs
 	lyr.act=sigmoid(lyr.z)
 	return lyr
@@ -72,26 +81,33 @@ def backward(lyr,hd):
 	if hd.nb!=None:
 		hd.nb=np.dot(lyr.wt,lyr.nb)*sigmoid_prime(hd.z.T) 	
 	lyr.nw=np.dot(hd.act.T,lyr.nb.T)
+	print('nb=',lyr.nb)#,'act=',hd.act,'nw=',lyr.nw)
+	# print(lyr.nw)
 	lyr.pst_bs()
 	lyr.pst_wt()	
 	return hd
 
-def crs(src,npc=1,eta=1):
+def crs(src,npc=1,eta=3.0):
+	# print(-eta/npc*src)
 	return -eta/npc*src 
 
 def sigmoid(z):
 	return 1.0/(1.0+np.exp(-z))
 
 def sigmoid_prime(z):
-		return sigmoid(z)*(1-sigmoid(z))
+	# ap=sigmoid(z)*(1-sigmoid(z))
+	# print(ap)
+	# return ap
+	return sigmoid(z)*(1-sigmoid(z))
 
 def evl(tsd):
 	# tsr= [(np.argmax(mrk.fwd(x)), y) for (x, y) in tsd]
-	tsr=np.zeros((10,))
+	tsr=np.zeros((2,10))
 	for x,y in tsd:
 		if np.argmax(mrk.fwd(x))==y:
-			tsr[y]+=1
-	return tsr
+			tsr[0][y]+=1
+		tsr[1][y]+=1
+	return 100*tsr[0]/tsr[1]
 
 def sgd(trd,npc,eta,epk=1,tsd=None):
 	for k in range(epk):
@@ -108,7 +124,7 @@ def sgd(trd,npc,eta,epk=1,tsd=None):
 
 
 		if tsd:
-			print ("Epoch {0}: {1} / {2}".format(k, evl(tsd), len(tsd)))
+			print ("Epoch {0}: {1}".format(k, evl(tsd)))
 		else:
 			print ("Epoch complete")
 
@@ -116,24 +132,27 @@ def load_data1():
 	f = gzip.open('mnist.pkl.gz', 'rb')
 	td, validation_data, tsd = pickle.load(f,encoding='bytes')
 	f.close()
-	n=12
-	return (td[0][n],td[1][n])
+	n=4
+	return zip(td[0][:n],td[1][:n])
 
 if __name__=="__main__":
-	fbr=[784,20,20,10]
+	fbr=[784,30,10]
 	mrk=cycle(fbr)
 
-	trd,tsd=load_data()
-	sgd(trd,10,1,epk=20,tsd=tsd)
+	# trd,tsd=load_data()
+	# sgd(trd,10,1,epk=20,tsd=tsd)
 
-	# x,y=load_data1()
-	# if x.shape[0]!=1:x.shape=(1,x.shape[0])
-	# for i in range(30):
-	# 	mrk.bkp(x,y)
-	# 	for lyr in mrk.csd[1:]:
-	# 		lyr.update()
-		
-	# 	print(y,':',np.argmax(mrk.csd[-1].act))
+
+	for x,y in load_data1():
+		if x.shape[0]!=1:x.shape=(1,x.shape[0])
+		for i in range(1):
+			mrk.bkp(x,y)
+			for lyr in mrk.csd[1:]:
+				lyr.update()
+			vd=np.argmax(mrk.csd[-1].act)		
+			print(y,':',vd)
+			# print(mrk.csd[2].z)
+			if y==vd: break
 
 	
 	
