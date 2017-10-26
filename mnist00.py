@@ -29,7 +29,7 @@ class layer:
 		self.pwt+=self.nw
 		self.nw=[]
 	def pst_bs(self):
-		self.pbs+=self.nb.T
+		self.pbs+=self.nb
 		self.nb=[]
 
 	def update(self,func):
@@ -52,7 +52,7 @@ class cycle:
 
 	def fwd(self,inp):
 		for lyr in self.csd[1:]:
-			inp=sigmoid(np.dot(inp,lyr.wt)+lyr.bs)
+			inp=sigmoid(np.dot(lyr.wt,inp)+lyr.bs)
 		return inp
 	
 	def bkp(self,inp,otp):
@@ -67,19 +67,19 @@ class cycle:
 		reduce(backward,self.csd[::-1])
 
 def init_cost(lyr,otp):
-	dmp=np.zeros((10,1))
+	dmp=np.zeros((10,))
 	dmp[otp]=1
-	lyr.nb=(lyr.act.T-dmp)*sigmoid_prime(lyr.z.T)
+	lyr.nb=(lyr.act-dmp)*sigmoid_prime(lyr.z)
 
 def forward(hd,lyr):
-	lyr.z=np.dot(hd.act,lyr.wt)+lyr.bs
+	lyr.z=np.dot(lyr.wt,hd.act)+lyr.bs
 	lyr.act=sigmoid(lyr.z)
 	return lyr
 
 def backward(lyr,hd):
 	if hd.nb!=None:
-		hd.nb=np.dot(lyr.wt,lyr.nb)*sigmoid_prime(hd.z.T) 	
-	lyr.nw=np.dot(hd.act.T,lyr.nb.T)
+		hd.nb=np.dot(lyr.nb,lyr.wt)*sigmoid_prime(hd.z) 	
+	lyr.nw=np.outer(lyr.nb,hd.act)
 	lyr.pst_bs()
 	lyr.pst_wt()	
 	return hd
@@ -110,7 +110,7 @@ def sgd(trd,npc,eta,epk=1,tsd=None):
 		for patch in (trd[k:k+npc] for k in range(0,len(trd),npc)):
 			for x,y in patch:
 				# for i in range(50):
-				if x.shape[0]!=1:x.shape=(1,x.shape[0])
+				# if x.shape[0]!=1:x.shape=(1,x.shape[0])
 				mrk.bkp(x,y)
 				for lyr in mrk.csd[1:]:
 					lyr.update(partial(crs,npc,eta))
@@ -132,7 +132,7 @@ if __name__=="__main__":
 	mrk=cycle(fbr)
 
 	trd,tsd=load_data()
-	sgd(trd,10,3,epk=2,tsd=tsd)
+	sgd(trd,10,3,epk=10,tsd=tsd)
 
 
 	# for x,y in load_data1():

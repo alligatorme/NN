@@ -132,7 +132,7 @@ if __name__=="__main__":
 	mrk=cycle(fbr)
 
 	trd,tsd=load_data()
-	sgd(trd,10,3,epk=2,tsd=tsd)
+	sgd(trd,10,3,epk=3,tsd=tsd)
 
 
 	# for x,y in load_data1():
