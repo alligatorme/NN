@@ -13,12 +13,12 @@ def load_data():
 
 
 class layer:
-	def __init__(self,n,k):
+	def __init__(self,n,k,j):
 		self.nb=[]
 		self.nw=[]
 		if n:
-			self.wt=np.random.randn(k,n)
-			self.bs=np.random.randn(k)
+			self.wt=np.random.randn(j,k,n)
+			self.bs=np.random.randn(j,k,1)
 			self.pwt=np.zeros(self.wt.shape)
 			self.pbs=np.zeros(self.bs.shape)
 		else:
@@ -41,11 +41,11 @@ class layer:
 
 
 class cycle:
-	def __init__(self,fbr):		
+	def __init__(self,fbr,ptc):		
 		self.csd=[]
-		self.csd.append(layer(0,0))
+		self.csd.append(layer(0,0,ptc))
 		for i,j in zip(fbr[:-1],fbr[1:]):
-			self.csd.append(layer(i,j))	
+			self.csd.append(layer(i,j,ptc))	
 
 	def load(self,inp):
 		self.csd[0].act=inp
@@ -67,19 +67,21 @@ class cycle:
 		reduce(backward,self.csd[::-1])
 
 def init_cost(lyr,otp):
-	dmp=np.zeros((10,))
-	dmp[otp]=1
-	lyr.nb=(lyr.act-dmp)*sigmoid_prime(lyr.z)
+	lyr.nb=(lyr.act-otp)*sigmoid_prime(lyr.z)
+	# print(lyr.act.shape,otp.shape,lyr.z.shape)
 
 def forward(hd,lyr):
-	lyr.z=np.dot(lyr.wt,hd.act)+lyr.bs
+	lyr.z=np.matmul(lyr.wt,hd.act)+lyr.bs
+	# print(hd.act.shape,lyr.wt.shape,lyr.bs.shape,np.matmul(lyr.wt,hd.act).shape)
 	lyr.act=sigmoid(lyr.z)
 	return lyr
 
 def backward(lyr,hd):
 	if hd.nb!=None:
-		hd.nb=np.dot(lyr.nb,lyr.wt)*sigmoid_prime(hd.z) 	
-	lyr.nw=np.outer(lyr.nb,hd.act)
+		print(lyr.wt.transpose((0,2,1)).shape,lyr.nb.shape,hd.z.shape)
+		hd.nb=np.matmul(lyr.wt.transpose((0,2,1)),lyr.nb)*sigmoid_prime(hd.z) 
+		print(hd.nb.shape)	
+	lyr.nw=np.matmul(lyr.nb,hd.act.transpose((0,2,1)))
 	lyr.pst_bs()
 	lyr.pst_wt()	
 	return hd
@@ -105,6 +107,7 @@ def evl(tsd):
 	return np.around(100*tsr[0]/tsr[1],decimals=2),ptg
 
 def sgd(trd,npc,eta,epk=1,tsd=None):
+	mrk=cycle(fbr,epk)
 	for k in range(epk):
 		np.random.shuffle(trd)
 		for patch in (trd[k:k+npc] for k in range(0,len(trd),npc)):
@@ -122,19 +125,34 @@ def sgd(trd,npc,eta,epk=1,tsd=None):
 
 def load_data1():
 	f = gzip.open('mnist.pkl.gz', 'rb')
-	td, validation_data, tsd = pickle.load(f,encoding='bytes')
+	td, vd, tsd = pickle.load(f,encoding='bytes')
 	f.close()
-	n=2
-	return zip(td[0][:n],td[1][:n])
+	return td,vd,tsd
+def vect(j):
+	e=np.zeros(10)
+	e[j]=1
+	return e
+
+def pack(td,epk):
+	n=len(td[1])
+	size=len(td[0][0])
+	for i in range(0,epk-1,epk):
+		x=np.concatenate(td[0][i:i+epk])
+		x=np.reshape(x,(epk,size,1))
+
+		y=np.concatenate(list(map(vect, td[1][i:i+epk])))
+		y=np.reshape(y,(epk,10,1))
+	return x,y
+
 
 if __name__=="__main__":
 	fbr=[784,30,10]
-	mrk=cycle(fbr)
-
-	trd,tsd=load_data()
-	sgd(trd,10,3,epk=10,tsd=tsd)
-
-
+	mrk=cycle(fbr,12)
+	
+	td,_,_=load_data1()
+	x,y=pack(td,12)
+	mrk.bkp(x,y)
+	# sgd(trd,10,3,epk=2,tsd=tsd)
 	# for x,y in load_data1():
 	# 	if x.shape[0]!=1:x.shape=(1,x.shape[0])
 	# 	for i in range(1):
