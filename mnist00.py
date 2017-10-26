@@ -17,8 +17,8 @@ class layer:
 		self.nb=[]
 		self.nw=[]
 		if n:
-			self.wt=np.random.randn(n,k)
-			self.bs=np.random.randn(1,k)
+			self.wt=np.random.randn(k,n)
+			self.bs=np.random.randn(k)
 			self.pwt=np.zeros(self.wt.shape)
 			self.pbs=np.zeros(self.bs.shape)
 		else:
